@@ -1,0 +1,55 @@
+"Hub" module:
+_________________________
+Key components:
+1. Hub Resource Group: Organizational container for all deployed Hub resources.
+2. Hub Virtual Network (VNet): Isolated network environment to host Hub resources.
+3. Subnets: Segmentation of the VNet for specific Azure services and resources:
+    a. Azure Firewall Subnet: Hosting Azure Firewall for centralized security enforcement.
+    b. Azure DevOps Subnet: Dedicated subnet for private Azure DevOps services.
+    c. Virtual Network Gateway (VNG) subnet: Subnet for Azure Virtual Network Gateway.
+4. Azure Firewall: Centralized network security service that allows or denies network traffic based on rules.
+5. Route Tables: Configuration to define routes for network traffic within the Azure environment.
+6. Azure Virtual Network Gateway (VNG): Provides secure P2S connectivity between the Azure virtual network and individual clients.
+7. Windows Virtual Machine (VM): Configured with Windows 11 operating system, suitable for testing private Azure DevOps workloads.
+
+"Spokes" module:
+_________________________
+Key components:
+1. Spoke Resource Group: Organizational container for resources deployed within the spoke.
+2. Spoke Virtual Network (VNet): Isolated network environment for hosting AKS resources.
+3. Subnets: Segmentation within the VNet for different services:
+    a. AKS Subnet: Dedicated subnet for Azure Kubernetes Service.
+    b. PE Subnet: Dedicated subnet for AKS and ACR Private Endpoints.
+4. Azure Kubernetes Service (AKS): Managed Kubernetes cluster for containerized application deployment.
+5. Azure Container Registry (ACR): Private registry for storing and managing Docker container images.
+6. Private DNS Zones: Configured to resolve AKS and ACR hostnames within the VNet.
+7. Managed Identities: Used to provide secure AKS authentication and authorization to Azure resources.
+
+_________________________
+Prerequsites:
+1. Creation of Root certificate for the P2S configuration.
+2. Additional DNS configuration within P2S .xml file or local hostfile is required to use Azure FW as forwarder; 
+Alternatively, access to private AKS and ACR can be achived via the DevOps VM in the HUB.
+
+_________________________
+Known issues:
+1. Initially configured with the kubenet network plugin in the cluster, but switched to Azure native due to few not known limitations during the start of the project's second phase.
+2. Checkov identified several security issues in the directory; some were fixed, but not all, given the proof of concept nature and lack of the time.
+3. Security enhancements planned include encryption configuration, firewall policy hardening, and NSGs creation.
+4. Deploying VNG and configuring P2S VPN in the HUB requires inserting a certificate; storing sensitive data in Key Vault is recommended over hardcoding.
+5. While this code could be fully restructured to utilize all components as separate modules and be more user friendly for future configurations, I opted for a more streamlined approach using only two main modules: "Hub" and "Spokes."
+ This decision was made to maintain a focused approach on specific components within each module, allowing for quicker development. 
+
+_________________________
+Additional notes:
+
+In this project, I aimed to experiment with various additional technologies and techniques, some of which may not have been necessary for a simpler implementation.
+For instance, instead of creating a complex setup, I considered simpler alternatives like using a Bastion and accessing the AKS cluster from the isolated VM (jumphost) within the same VNET, along with setting up a NAT gateway for outbound AKS access.
+This project was a valuable learning experience for me.
+
+Thank you for your time!
+
+
+
+
+
