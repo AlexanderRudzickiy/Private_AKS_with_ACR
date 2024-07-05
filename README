@@ -33,7 +33,7 @@ Alternatively, access to private AKS and ACR can be achived via the DevOps VM in
 
 _________________________
 Known issues:
-1. Initially configured with the kubenet network plugin in the cluster, but switched to Azure native due to few not known limitations during the start of the project's second phase.
+1. Initially configured with the kubenet network plugin in the cluster, but switched to Azure native due to few limitations during the start of the project's second phase.
 2. Checkov identified several security issues in the directory; some were fixed, but not all, given the proof of concept nature and lack of the time.
 3. Security enhancements planned include encryption configuration, firewall policy hardening, and NSGs creation.
 4. Deploying VNG and configuring P2S VPN in the HUB requires inserting a certificate; storing sensitive data in Key Vault is recommended over hardcoding.
