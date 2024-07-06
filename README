@@ -1,33 +1,7 @@
 This document provides an architectural overview of the Terraform deployment for setting up an Azure Hub and Spoke environment.
 The architecture ensures secure access to Azure Container Registry (ACR) and Azure Kubernetes Service (AKS) via private networking,
 leveraging Private Endpoints, Virtual Network Gateway (VNG) for Point-to-Site (P2S) VPN, Azure Firewall (FW), and associated route tables.
-Additionally, a subnet within the Hub is designated for Azure DevOps shared resources to support CI/CD pipelines integration with the ACR and AKS deployed in the spoke.
-
-+--------------------------------------------+  +--------------------------------------------+
-|         Hub Resource Group (hub_rg)        |  |         Spoke Resource Group (spoke_rg)    |
-|                                            |  |                                            |
-|   +--------------------------------------+ |  |   +--------------------------------------+ |
-|   | Virtual Network (hub_vnet)           | |  |   | Virtual Network (spoke_vnet)         | |
-|   |                                      | |  |   |                                      | |
-|   |  +-------------------------------+   | |  |   |  +-------------------------------+   | |
-|   |  | Subnet: AzureFirewallSubnet   |   | |  |   |  | Subnet: AKSSubnet             |   | |
-|   |  | - Azure Firewall (fw)         |   | |  |   |  | - AKS Cluster (aks)           |   | |
-|   |  |   - Public IP (pip_azfw)      |   | |  |   |  |- Route Table (aks_route_table)|   | |
-|   |  |   - Firewall Policy           |   | |  |   |  +-------------------------------+   | |
-|   |  +-------------------------------+   | |  |   |                                      | |
-|   |                                      | |  |   |  +-------------------------------+   | |
-|   |  +-------------------------------+   | |  |   |  | Subnet: PESubnet              |   | |
-|   |  | Subnet: DevOpsSubnet          |   | |  |   |  | - Private Endpoint (pe-acr)   |   | |
-|   |  | - VM NIC (devops_vm_nic)      |   | |  |   |  | - Private Endpoint (pe-aks)   |   | |
-|   |  | - Windows VM (devops_vm)      |   | |  |   |  +-------------------------------+   | |
-|   |  +-------------------------------+   | |  |   +--------------------------------------+ |
-|   |                                      | |  |                                            |
-|   |  +-------------------------------+   | |  |   - Container Registry (acr)               |
-|   |  | Subnet: GatewaySubnet         |   | |  |   - Private DNS Zone (acr_pdns_zone)       |
-|   |  | - VNG with P2S configuration  |   | |  |   - User Assigned Identity (id-aks)        |
-|   |  |   - Public IP (vng_public_ip) |   | |  +--------------------------------------------+
-|   |  +-------------------------------+   | |
-+--------------------------------------------+  
+Additionally, a subnet within the Hub is designated for Azure DevOps shared resources to support CI/CD pipelines integration with the ACR and AKS.  
 
 _________________________
 "Hub" module:
