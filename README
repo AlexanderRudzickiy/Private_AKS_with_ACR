@@ -1,3 +1,32 @@
+This document provides an architectural overview of the Terraform deployment for setting up an Azure Hub and Spoke environment. The architecture ensures secure access to Azure Container Registry (ACR) and Azure Kubernetes Service (AKS) via private networking, leveraging Private Endpoints, Virtual Network Gateway (VNG) for Point-to-Site (P2S) VPN, Azure Firewall (FW), and associated route tables. Additionally, a subnet within the Hub is designated for Azure DevOps shared resources to support CI/CD pipelines integration with ACR and AKS.
+
++--------------------------------------------+  +--------------------------------------------+
+|         Hub Resource Group (hub_rg)        |  |         Spoke Resource Group (spoke_rg)    |
+|                                            |  |                                            |
+|   +--------------------------------------+ |  |   +--------------------------------------+ |
+|   | Virtual Network (hub_vnet)           | |  |   | Virtual Network (spoke_vnet)         | |
+|   |                                      | |  |   |                                      | |
+|   |  +-------------------------------+   | |  |   |  +-------------------------------+   | |
+|   |  | Subnet: AzureFirewallSubnet   |   | |  |   |  | Subnet: AKSSubnet             |   | |
+|   |  | - Azure Firewall (fw)         |   | |  |   |  | - AKS Cluster (aks)           |   | |
+|   |  |   - Public IP (pip_azfw)      |   | |  |   |  |- Route Table (aks_route_table)|   | |
+|   |  |   - Firewall Policy           |   | |  |   |  +-------------------------------+   | |
+|   |  +-------------------------------+   | |  |   |                                      | |
+|   |                                      | |  |   |  +-------------------------------+   | |
+|   |  +-------------------------------+   | |  |   |  | Subnet: PESubnet              |   | |
+|   |  | Subnet: DevOpsSubnet          |   | |  |   |  | - Private Endpoint (pe-acr)   |   | |
+|   |  | - VM NIC (devops_vm_nic)      |   | |  |   |  | - Private Endpoint (pe-aks)   |   | |
+|   |  | - Windows VM (devops_vm)      |   | |  |   |  +-------------------------------+   | |
+|   |  +-------------------------------+   | |  |   +--------------------------------------+ |
+|   |                                      | |  |                                            |
+|   |  +-------------------------------+   | |  |   - Container Registry (acr)               |
+|   |  | Subnet: GatewaySubnet         |   | |  |   - Private DNS Zone (acr_pdns_zone)       |
+|   |  | - VNG with P2S configuration  |   | |  |   - User Assigned Identity (id-aks)        |
+|   |  |   - Public IP (vng_public_ip) |   | |  +--------------------------------------------+
+|   |  +-------------------------------+   | |
++--------------------------------------------+  
+
+_________________________
 "Hub" module:
 _________________________
 Key components:
@@ -10,8 +39,8 @@ Key components:
 4. Azure Firewall: Centralized network security service that allows or denies network traffic based on rules.
 5. Route Tables: Configuration to define routes for network traffic within the Azure environment.
 6. Azure Virtual Network Gateway (VNG): Provides secure P2S connectivity between the Azure virtual network and individual clients.
-7. Windows Virtual Machine (VM): Configured with Windows/Linux operating system, suitable for self-hosted Azure DevOps VM.
-
+7. Windows Virtual Machine (VM): Configured with Windows/Linux operating system suitable for self-hosted Azure DevOps VM.
+_________________________
 "Spokes" module:
 _________________________
 Key components:
@@ -20,41 +49,40 @@ Key components:
 3. Subnets: Segmentation within the VNet for different services:
     a. AKS Subnet: Dedicated subnet for Azure Kubernetes Service.
     b. PE Subnet: Dedicated subnet for AKS and ACR Private Endpoints.
-4. Azure Kubernetes Service (AKS): Managed Kubernetes cluster for containerized application deployment.
+4. Azure Kubernetes Service (AKS): Private K8s cluster for containerized application deployment.
 5. Azure Container Registry (ACR): Private registry for storing and managing container images.
-6. Private DNS Zones: Configured to resolve AKS and ACR hostnames within the VNet.
+6. Private DNS Zones: Configured to resolve AKS and ACR hostnames within the Hub and Spoke VNets.
 7. Managed Identities: Used to provide secure AKS authentication and authorization to Azure resources.
-
 _________________________
+
 Prerequsites and manual interventions for this project:
+
 1. Creation of the Root certificate for the P2S configuration.
 2. Additional DNS configuration within P2S .xml file or local hostfile is required to use Azure FW as DNS forwarder; 
 Alternatively, access to private AKS and ACR can be achived via DevOps VM.
 3. Installation of the Azure DevOps agent on the VM.
 
-_________________________
 Known issues:
+
 1. Initially configured with the kubenet network plugin in the cluster, but switched to Azure native due to several limitations during the start of the project's second phase.
 2. Checkov identified several security issues in the code; some were fixed, but not all, given the proof of concept nature and lack of the time.
 3. Security enhancements planned include encryption configuration, firewall policy hardening, NSGs creation and admin option removal.
 4. Deploying VNG and configuring P2S VPN in the HUB requires inserting a certificate; storing sensitive data in the Key Vault is recommended over hardcoding.
 5. While this code could be fully restructured to utilize all components as separate modules and be more user friendly for future configurations, I opted for a more streamlined approach using only two main modules: "Hub" and "Spokes." This decision was made to maintain a focused approach on specific components within each module, allowing for quicker development. 
-In an enterprise production environment, I recommend creating two separate Terraform configurations for the Hub and Spokes. This separation reduces the risk of inadvertently modifying the Hub configuration when working on the Spokes, ensuring greater stability and security.
-
+In an enterprise production environment, I recommend creating two separate Terraform configurations for the Hub and Spokes, this separation reduces the risk of inadvertently modifying the Hub configuration when working on the Spokes, ensuring greater stability and security.
+6. In the production environment it is recommended to move Azure DevOps to another spoke of the shared resources.
 _________________________
 CI/CD bonus part - Not finished
+_________________________
+For this part, I have chosen to use an Azure DevOps self-hosted agent on the DevOps VM created in the Hub.
+For future projects, it is recommended to use a pre-built image of the Windows Server/Linux that includes common services such as Docker, Azure CLI, kubectl, and more.
 
-For this part, I have chosen to use an Azure DevOps self-hosted agent on a DevOps VM created in the Hub.
-For future projects, it is recommended to use a pre-built image of Windows Server that includes common services such as Docker, Azure CLI, kubectl, and more.
-
-____________________________
 Current Status and Approach:
 
 Currently, this setup is under testing.
 The overall idea is to configure the deployed VM to act as an internal nod for the Azure DevOps service, allowing us to run our pipelines directly from Azure DevOps via this VM.
 This configuration will enable the deployment of applications to a private Azure Kubernetes Service (AKS) using a private Azure Container Registry (ACR), as both services can not be accessible from the internet in our environment.
 
-____________________________
 Key Steps:
 
 1. Using deployed VM in the hub.
@@ -62,7 +90,7 @@ Key Steps:
 3. Integration with Azure DevOps: Ensuring that our Azure DevOps pipelines can utilize this self-hosted agent to run CI/CD tasks.
 4. Private Deployment: Facilitating the deployment of applications to a private AKS using images stored in a private ACR.
 
-
+_________________________
 Additional notes:
 _________________________
 In this project, I aimed to experiment with various additional technologies and techniques, some of which may not have been necessary for a simpler implementation.
@@ -70,8 +98,3 @@ For instance, instead of creating a complex setup, I considered simpler alternat
 
 This project was a valuable learning experience for me.
 Thank you for your time!
-
-
-
-
-
