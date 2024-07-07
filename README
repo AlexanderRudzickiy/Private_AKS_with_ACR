@@ -48,6 +48,7 @@ Known issues:
 5. While this code could be fully restructured to utilize all components as separate modules and be more user friendly for future configurations, I opted for a more streamlined approach using only two main modules: "Hub" and "Spokes." This decision was made to maintain a focused approach on specific components within each module, allowing for quicker development. 
 In an enterprise production environment, I recommend creating two separate Terraform configurations for the Hub and Spokes, this separation reduces the risk of inadvertently modifying the Hub configuration when working on the Spokes, ensuring greater stability and security.
 6. In the production environment it is recommended to move Azure DevOps to another spoke of the shared resources.
+7. For the future, it is recommended to reconfigure spokes module to be able to deploy several different environments by users choise.
 _________________________
 CI/CD bonus part - Not finished
 _________________________
